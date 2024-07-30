@@ -786,44 +786,25 @@ int main(int argc, char *argv[])
             break;
 
         case 0b000101:
-        { // Supondo que cmp tenha opcode 0b000101
+        {
+            // CMP
+            x = (R[28] & (0b11111 << 16)) >> 16;
+            y = (R[28] & (0b11111 << 11)) >> 11;
 
-            // Execução da operação de comparação entre IR e PC
-            int32_t result_cmp = R[28] - R[29];
+            uint64_t cmp = R[x] - R[y];
+
+            // prinft R[x]
+            // ▶ ZN ← (CMP = 0)
+            // ▶ SN ← (CMP31 = 1)
+            // ▶ OV ← (R[x]31 ̸= R[y]31) ∧ (CMP31 ̸= R[x] 31)
+            // ▶ CY ← (CMP32 = 1)
 
             // Definindo os campos afetados
-            uint32_t ZN = (result_cmp == 0);
-            uint32_t ZD = (R[29] == 0);
-            uint32_t SN = (result_cmp < 0);
-            uint32_t OV = ((R[28] < 0 && R[29] >= 0 && result_cmp >= 0) || (R[28] >= 0 && R[29] < 0 && result_cmp < 0));
-            uint32_t IV = 0; // Não há instrução inválida na operação de comparação
-            uint32_t CY = 0; // Não há carry na operação de subtração
-
-            // Definindo o valor de SR baseado nos campos afetados
-            if (ZN)
-            {
-                SR = 0b1000000;
-            }
-            else if (ZD)
-            {
-                SR = 0b0100000;
-            }
-            else if (SN)
-            {
-                SR = 0b0010000;
-            }
-            else if (OV)
-            {
-                SR = 0b0001000;
-            }
-            else if (IV)
-            {
-                SR = 0b0000100;
-            }
-            else
-            {
-                SR = 0; // Nenhum dos casos acima, então SR é 0
-            }
+            ZN = (cmp == 0);
+            SN = (R[28] & (0b11111 << 31) >> 31) == 1;
+            OV = ((R[x] & (0b11111 << 31) >> 31) != (R[y] & (0b11111 << 31) >> 31) && ((R[28] & (0b11111 << 31) >> 31) != 1));
+            CY = ((R[28] & (0b11111 << 32) >> 32) == 1);
+            SR = (ZN << 6) | (ZD << 5) | (SN << 4) | (OV << 3) | (IV << 2) | CY;
 
             // Formatação da instrução
             char instrucao[50];
